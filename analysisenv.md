@@ -27,96 +27,230 @@
 
 ## Python 환경 구축 안내
 
-### pipenv를 이용한 환경 구축
+### Conda를 이용한 환경 구축
 
-* pipenv는 파이썬 버전 및 virtualenv 환경 그리고 패키지 관리까지 포함된 공식 python 환경 시스템입니다.
-* 디렉토리 별로 프로젝트를 구분하기 때문에 새로운 프로젝트는 새로운 디렉토리에서 환경을 구축해야 합니다.
+* anaconda 설정에 대한 내용은 추후 추가될 예정입니다.
+* 다만, conda 명령 그대로보다는 mamba 등을 사용해주시기를 요청드립니다.
 
-### 초기 환경 구축
-1. 신규 디렉토리 생성
-    ```bash
-    mkdir pipenv_test01
-    ```
+ ### Poetry + Apptainer를 이용한 환경 구축
 
-2. pipenv 설치
+#### 1. 개요
 
-    ```bash
-    pip3 install --user pipenv
-    ```
+본 문서는 Python 프로젝트에서 **Poetry**를 이용해 의존성을 관리하고, 실행 환경은 **Apptainer(Singularity)** 컨테이너로 고정하여 HPC·클러스터 환경에서도 **완전한 재현성(reproducibility)** 을 보장하는 개발 및 배포 흐름(workflow)을 설명한다.
 
-3. pyenv 설치
+Poetry는 Python 패키지 의존성과 가상환경을 관리하며, Apptainer는 시스템 라이브러리, OS 의존성, Python 런타임 등을 캡슐화한다.
+ 두 도구를 조합하면:
 
-    ```bash
-    curl https://pyenv.run | bash
-    
-    echo "export PYENV_ROOT=\"$HOME/.pyenv\"" >> $HOME/.bashrc
-    eval "$(pyenv init -)" >> $HOME/.bashrc
-    
-    source $HOME/.bashrc
-    ```
+- Python dependencies → Poetry (`pyproject.toml`, `poetry.lock`)
+- OS dependencies → Apptainer (base OS 이미지)
+- 실행 환경 전부가 컨테이너 내부에서 재현 가능
+- HPC 환경에서도 모듈 충돌 없이 안전하게 실행 가능
 
-4. pyenv 에서 원하는 python 버전 설치
+이라는 장점을 얻을 수 있다.
 
-    ```bash
-    pyenv install 3.7.13
-    ```
+#### 2. 전체 구조 개요
 
-    
+```
+project/
+ ├─ pyproject.toml       # Poetry 의존성 정의
+ ├─ poetry.lock          # Poetry lock
+ ├─ app/                 # Python 코드
+ ├─ apptainer.def        # Apptainer 컨테이너 정의 파일
+ └─ run.sh               # 실행 스크립트(옵션)
+```
 
-5. pipenv로 python 세팅
+- **Poetry는 Python 라벨의 종속성만 관리**
+- **시스템 종속성(libpq-dev, ffmpeg 등)은 Apptainer 정의 파일(apptainer.def)에서 설치**
+- Poetry 환경은 컨테이너 *안에서* 생성하며, 외부 시스템에는 오염 없음
 
-    ```bash
-    pipenv --python 3.7.13
-    ```
-    >Creating a virtualenv for this project...\
-    Pipfile: /share/geonmo/01management/condor_check/pipenv_test01/Pipfile\
-    Using /share/geonmo/.pyenv/versions/3.7.13/bin/python3.7m (3.7.13) to create virtualenv...                                                                    
-    ⠏ Creating virtual environment...created virtual environment CPython3.7.13.final.0-64 in 15781ms                                                              
-    creator CPython3Posix(dest=/share/geonmo/.local/share/virtualenvs/pipenv_test01-rTDE4siu, clear=False, no_vcs_ignore=False, global=False)              
-    seeder FromAppData(download=False, pip=bundle, setuptools=bundle, wheel=bundle, via=copy, app_data_dir=/share/geonmo/.local/share/virtualenv)               
-    added seed packages: pip==22.0.4, setuptools==62.1.0, wheel==0.37.1
-    activators BashActivator,CShellActivator,FishActivator,NushellActivator,PowerShellActivator,PythonActivator\
-    ✔ Successfully created virtual environment!
-    Virtualenv location: /share/geonmo/.local/share/virtualenvs/pipenv_test01-rTDE4siu                                                                          
-    Creating a Pipfile for this project...
+-----
 
-6. py
+#### 3. Apptainer 기본 사용법 (요약)
 
-7. pipenv로 패키지 설치
+##### 3.1. 이미지 빌드
 
-    ```bash
-    #pipenv install <Package>
-    pipenv install numpy
-    ```
-    >Installing numpy...\
-    Adding numpy to Pipfile's [packages]...\
-    ✔ Installation Succeeded\
-    Pipfile.lock not found, creating...\
-    Locking [dev-packages] dependencies...\
-    Locking [packages] dependencies...\
-    Building requirements...\
-    Resolving dependencies...\
-    ✔ Success!\
-    Updated Pipfile.lock (2cfc5e)!\
-    Installing dependencies from Pipfile.lock (2cfc5e)...\
-    🐍   ▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉ 0/0  00:00:00\
-    To activate this project's virtualenv, run pipenv shell.\
-    Alternatively, run a command inside the virtualenv with pipenv run.
+```
+apptainer build myimage.sif apptainer.def
+```
 
-8. pipenv shell로 해당 환경 접속
-    ```bash
-    pipenv shell 
-    ```
-    >Launching subshell in virtual environment...\
-    . /share/geonmo/.local/share/virtualenvs/pipenv_test01-rTDE4siu/bin/activate\
-    [geonmo@bio-ui7 pipenv_test01]$  . /share/geonmo/.local/share/virtualenvs/pipenv_test01-rTDE4siu/bin/activate\
-    (pipenv_test01) [geonmo@bio-ui7 pipenv_test01]$ pip freeze\
-    numpy==1.21.6\
-    (pipenv_test01) [geonmo@bio-ui7 pipenv_test01]$ python --version
-    Python 3.6.8
+##### 3.2. 이미지 실행
 
-9. pipenv run으로 외부에서 명령어 실행 가능
-    ```bash
-    pipenv run pip freeze
-    ```
+```
+apptainer exec myimage.sif python app/main.py
+```
 
+##### 3.3. 이미지 쉘 진입
+
+```
+apptainer shell myimage.sif
+```
+
+----
+
+#### 4. 프로젝트 준비
+
+##### 4.1. Poetry 설정
+
+프로젝트 루트에서:
+
+```
+poetry init
+# or 기존 프로젝트는 아래만 수행
+poetry install
+```
+
+`pyproject.toml` 에 필요한 패키지를 추가:
+
+```
+poetry add numpy pandas requests
+poetry add --group dev pytest black
+```
+
+---
+
+#### 5. Apptainer 정의 파일 작성 (apptainer.def)
+
+아래는 **Poetry + minimal Debian 기반** 예시.
+
+```
+Bootstrap: docker
+From: python:3.11-slim
+
+%labels
+    Author YourName
+    Description "Python+Poetry container for HPC"
+
+%post
+    # 기본 패키지
+    apt-get update && apt-get install -y --no-install-recommends \
+        build-essential \
+        git \
+        curl \
+        libpq-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Poetry 설치
+    curl -sSL https://install.python-poetry.org | python3 -
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
+
+    # 프로젝트 복사
+    mkdir -p /app
+    cp -r $APPTAINER_BUILDDEF_DIR/* /app
+    cd /app
+
+    # Poetry 가상환경을 컨테이너 내부에 생성
+    poetry config virtualenvs.in-project true
+    poetry install --no-interaction --no-root
+
+%environment
+    export PATH="/app/.venv/bin:$PATH"
+    export PYTHONPATH="/app:$PYTHONPATH"
+
+%runscript
+    exec poetry run python app/main.py "$@"
+```
+
+------
+
+## 6. 컨테이너 빌드
+
+HPC 환경에서는 싱귤래리티가 root-free로 빌드될 수 있음:
+
+```
+apptainer build myproj.sif apptainer.def
+```
+
+빌드 성공 후 생성된 `myproj.sif`는 해당 Python 환경을 완전히 포함한다.
+
+------
+
+## 7. 컨테이너 실행 방식
+
+### 7.1 직접 실행 (프로그램 자동 실행)
+
+```
+apptainer run myproj.sif
+```
+
+### 7.2 특정 Python 파일 실행
+
+```
+apptainer exec myproj.sif poetry run python app/train.py
+```
+
+### 7.3 컨테이너 쉘 진입
+
+```
+apptainer shell myproj.sif
+```
+
+------
+
+## 8. 외부 디렉토리 마운트 (HPC에서 매우 중요)
+
+아래는 `/scratch` 같은 외부 스토리지를 컨테이너에 마운트하는 예:
+
+```
+apptainer exec --bind /scratch:/scratch myproj.sif python app/main.py
+```
+
+또는 여러 디렉토리:
+
+```
+apptainer exec --bind /data,/scratch myproj.sif python ...
+```
+
+------
+
+## 9. HTCondor 배치 스크립트 예시
+
+`python_apptainer_test.sub`:
+
+```
+Universe = container
+container_image = /ngnu/container_images/ngnu_test01/myproj.sif
+JobBatchName            = Python_Apptainer_Test
+Log = htcondor.log
+Output = job_log/$(JobBatchName)/$(Cluster)/$(Process).out
+Error = job_log/$(JobBatchName)/$(Cluster)/$(Process).err
+
+should_transfer_files  = YES
+when_to_transfer_output = ON_EXIT
+
+### sh> run.script $1 $2 $3
+Executable = python_analysis_code.sh
+Arguments = "$(PARAM1) $(PARAM2) $(PARAM3)"
+
+### 전송할 파일 목록. 참고로 Executable은 input files 목록에 넣을 필요 없음.
+transfer_input_files = analysis_code.py
+transfer_output_files = output.root
+transfer_output_remaps = "output.root=results/$(Cluster)/output_$(Process).root"
+
+### 컨테이너 내부에서 연결할 호스트의 디렉토리를 설정. 반드시 string형태여야 함. " "로 묶인 문장
++SingularityBind="/cvmfs,/ngnu,/etc/profile.d/ngnu.sh"
+
+
+### 필요한 자원 정보
+Request_cpus = 1
+Request_memory = 5GB
+Request_disk = 1GB
+
+### 작업 제출.(https://htcondor.readthedocs.io/en/latest/users-manual/submitting-a-job.html)
+Queue 5 PARAM1, PARAM2, PARAM3 from analysis_path.txt
+## Queue 1 A, B from a.txt
+## Queue 1 in (A, B)
+```
+
+```python_analysis_code.sh```:
+
+```bash
+#!/bin/bash
+cd /app
+poetry run python analysis_code.py
+```
+
+제출:
+
+```
+condor_submit python_apptainer_test.sub
+```
