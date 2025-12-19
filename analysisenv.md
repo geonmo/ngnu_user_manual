@@ -34,11 +34,9 @@
 
  ### Poetry + Apptainer를 이용한 환경 구축
 
-#### 1. 개요
+최근 python 프로젝트의 패키지 관리로 **Poetry**가 유명합니다.  Python 프로젝트에서 **Poetry**를 이용해 의존성을 관리하고, 실행 환경은 **Apptainer(Singularity)** 컨테이너로 고정하여 HPC·클러스터 환경에서도 **완전한 재현성(reproducibility)** 을 보장하는 개발 및 배포 흐름(workflow)을 설명드리겠습니다.
 
-본 문서는 Python 프로젝트에서 **Poetry**를 이용해 의존성을 관리하고, 실행 환경은 **Apptainer(Singularity)** 컨테이너로 고정하여 HPC·클러스터 환경에서도 **완전한 재현성(reproducibility)** 을 보장하는 개발 및 배포 흐름(workflow)을 설명한다.
-
-Poetry는 Python 패키지 의존성과 가상환경을 관리하며, Apptainer는 시스템 라이브러리, OS 의존성, Python 런타임 등을 캡슐화한다.
+**Poetry**는 Python 패키지 의존성과 가상환경을 관리하며, **Apptainer**는 시스템 라이브러리, OS 의존성, Python 런타임 등을 캡슐화합니다.
  두 도구를 조합하면:
 
 - Python dependencies → Poetry (`pyproject.toml`, `poetry.lock`)
@@ -46,9 +44,9 @@ Poetry는 Python 패키지 의존성과 가상환경을 관리하며, Apptainer�
 - 실행 환경 전부가 컨테이너 내부에서 재현 가능
 - HPC 환경에서도 모듈 충돌 없이 안전하게 실행 가능
 
-이라는 장점을 얻을 수 있다.
+이라는 장점을 얻을 수 있습니다.
 
-#### 2. 전체 구조 개요
+#### 1. 전체 구조 개요
 
 ```
 project/
@@ -91,10 +89,23 @@ apptainer shell myimage.sif
 
 ##### 4.1. Poetry 설정
 
+최초 1회 poetry를 설치:
+
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+
+## 아래 내용을 .bashrc 등에 넣습니다.
+export PATH=$PATH:$HOME/.local/bin
+```
+
 프로젝트 루트에서:
 
 ```
+## 아래 명령 후 엔터만 계속 쳐도 됩니다.
 poetry init
+## 만약 상호작용을 하기 싫다면,
+poetry init --no-interaction
+
 # or 기존 프로젝트는 아래만 수행
 poetry install
 ```
