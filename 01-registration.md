@@ -11,8 +11,8 @@
 ## 가입을 위해 절차 안내
 
 * 아래 가입신청서 양식을 다운로드한 후 작성을 부탁드립니다.
-  * [가입 신청서 워드 양식](https://github.com/geonmo/ngnu_user_manual/blob/main/attach/GSDC-Account-Application.docx)
-  * [가입 신청서 PDF 양식](https://github.com/geonmo/ngnu_user_manual/blob/main/attach/GSDC-Account-Application.pdf)
+  * [가입 신청서 워드 양식](https://github.com/geonmo/ngnu_user_manual/raw/refs/heads/main/attach/GSDC-Account-Application.docx)
+  * [가입 신청서 PDF 양식](https://github.com/geonmo/ngnu_user_manual/raw/refs/heads/main/attach/GSDC-Account-Application.pdf)
 * 보내실 곳 
   * 유전체 팜 대응 이메일 주소 : **gsdc-support@kisti.re.kr**
     * 개인 메일로 보낼 시 처리가 늦어질 수 있습니다.
